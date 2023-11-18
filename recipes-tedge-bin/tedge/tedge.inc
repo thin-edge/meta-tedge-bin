@@ -1,8 +1,7 @@
 SUMMARY = "tedge is the cli tool for thin-edge.io"
 HOMEPAGE = "https://thin-edge.io"
 LICENSE = "CLOSED"
-
-RDEPENDS:${PN} += " mosquitto ca-certificates glibc-utils libxcrypt sudo"
+RDEPENDS:${PN} += " mosquitto ca-certificates libgcc glibc-utils libxcrypt sudo"
 
 inherit bin_package
 
