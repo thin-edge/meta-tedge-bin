@@ -8,9 +8,9 @@ SRC_URI[x86_64.md5sum] = "c3fe70d90c7f2a7c77bb1f7369284d2b"
 
 # Init manager variables
 INIT_REPO_CHANNEL = "community"
-INIT_VERSION = "0.2.0"
-SRC_URI[openrc.md5sum] = "de20be9ff99a8c816f710049e0aa4d6f"
-SRC_URI[systemd.md5sum] = "807b2e779bb288e2bbe2dfa1a7b029fc"
-SRC_URI[sysvinit.md5sum] = "f23ca3cb9582184bfd569f0f3034ef0f"
+INIT_VERSION = "0.2.2"
+SRC_URI[openrc.md5sum] = "7e8fdc361a868bc5602249879040e156"
+SRC_URI[systemd.md5sum] = "fd78bc692b823b56b660f528459d71d9"
+SRC_URI[sysvinit.md5sum] = "161568da4b2ff0dbbff4aa24f7e3fca2"
 
 require tedge.inc
