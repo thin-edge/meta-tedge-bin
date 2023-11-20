@@ -2,7 +2,7 @@
 
 `Meta-tedge-bin` is Openembedded layer of [thin-edge.io](https://github.com/thin-edge/thin-edge.io) that uses precompiled binaries.
 
-# Dependencies
+## Dependencies
 
 This layer depends on:
 
@@ -11,7 +11,7 @@ This layer depends on:
 * meta-python -> part of meta-openembedded
 * meta-networking -> part of meta-openembedded
 
-# Support
+## Support
 
 This layer supports: 
 
@@ -25,10 +25,16 @@ This layer supports:
     * Sysvinit
     * Systemd
 
-# Quick install
+## Quick install
 
 1. Download all needed layers
-2. source `poky/oe-init-build-env *Your environment directory*`
+2. Activate environment with `source poky/oe-init-build-env`
 3. Add needed layers to bblayers.conf
 4. Add following line to local.conf: `IMAGE_INSTALL:append = " tedge"`
 5. Run `bitbake core-image-minimal`
+
+For more detailed instructions check [our installation guide](docs/installation-guide.md)
+
+## Mender
+
+`Meta-tedge-bin` supports mender! Check [how to add mender to your build](docs/add-mender-to-your-build.md)
