@@ -49,6 +49,7 @@ restore() {
                 if systemctl list-unit-files "$UNIT_NAME"; then
                     echo "Enabling $UNIT_NAME" >&2
                     systemctl enable "$UNIT_NAME"
+                    systemctl start "$UNIT_NAME"
                 fi
             fi
         done < "$SYSTEMD_STATE_ENABLED"
