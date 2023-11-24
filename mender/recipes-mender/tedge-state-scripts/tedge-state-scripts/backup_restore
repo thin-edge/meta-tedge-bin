@@ -21,17 +21,12 @@ backup() {
         systemctl list-unit-files | grep enabled | cut -d\  -f1 > "$SYSTEMD_STATE_ENABLED"
     fi
 
-    if [ -n  "$(ls -A /etc/tedge/)" ]; then
-        mkdir -p /data/etc_tedge && cp -fr /etc/tedge/* /data/etc_tedge
-    fi
+    # if [ -n  "$(ls -A /var/tedge/)" ]; then
+    #     mkdir -p /data/var_tedge && cp -fr /var/tedge/* /data/var_tedge
+    # fi
 
-    if [ -n  "$(ls -A /var/tedge/)" ]; then
-        mkdir -p /data/var_tedge && cp -fr /var/tedge/* /data/var_tedge
-    fi
-
-    # rm -f "$BACKUP_DIR/etc_tedge.tgz"
-    # tar -cvpzf "$BACKUP_DIR/etc_tedge.tgz" /etc/tedge/
-    # tar xpf "$BACKUP_DIR/etc_tedge.tgz" /etc/tedge
+    rm -f "$BACKUP_DIR/etc_tedge.tgz"
+    tar -cvpzf "$BACKUP_DIR/etc_tedge.tgz" /etc/tedge/
 }
 
 ###################
@@ -43,10 +38,12 @@ restore() {
         exit 1
     fi
 
+    tar xzpf "$BACKUP_DIR/etc_tedge.tgz" /etc/tedge
+
     if command -V systemctl >/dev/null 2>&1; then
         while read -r UNIT_NAME; do
             if [ -n "$UNIT_NAME" ]; then
-                if systemctl list-unit-files "$UNIT_NAME"; then
+                if systemctl list-unit-files "$UNIT_NAME" >/dev/null 2>&1; then
                     echo "Enabling $UNIT_NAME" >&2
                     systemctl enable "$UNIT_NAME"
                     systemctl start "$UNIT_NAME"
