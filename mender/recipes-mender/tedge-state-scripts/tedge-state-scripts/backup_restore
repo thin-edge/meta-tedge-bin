@@ -51,7 +51,9 @@ backup_part_to_part() {
     fi
 
     # force unmounting any previously mounted partition (left over from any failed run)
-    umount /mnt >/dev/null 2>&1 || true
+    # use lazy unmounting so it does not hang
+    # umount -f /mnt >/dev/null 2>&1 || true
+    # sleep 1
     echo "mounting newroot to /mnt: $newroot" >&2
     if ! mount "$newroot" /mnt; then
         echo "Failed to mount $newroot" >&2
