@@ -52,6 +52,7 @@ backup_part_to_part() {
 
     # force unmounting any previously mounted partition (left over from any failed run)
     umount /mnt >/dev/null 2>&1 || true
+    echo "mounting newroot to /mnt: $newroot" >&2
     if ! mount "$newroot" /mnt; then
         echo "Failed to mount $newroot" >&2
         exit 1
@@ -69,8 +70,11 @@ backup_part_to_part() {
         count=$((count + 1))
     done
 
+    echo "mounted newroot to /mnt: $newroot" >&2
+
     # tedge files
     if [ -d /etc/tedge ]; then
+        echo "Copying /etc/tedge to $newroot" >&2
 
         if [ ! -d /mnt/etc/tedge ]; then
             mkdir -p /mnt/etc/tedge
@@ -82,6 +86,7 @@ backup_part_to_part() {
         VAR_TEDGE=$(tedge config get data.path)
         NEW_VAR_TEDGE="/mnt$VAR_TEDGE"
 
+        echo "Copying $VAR_TEDGE to $newroot" >&2
         if [ ! -d "$NEW_VAR_TEDGE" ]; then
             mkdir -p "$NEW_VAR_TEDGE"
             chown tedge:tedge "$NEW_VAR_TEDGE"
