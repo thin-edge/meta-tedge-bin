@@ -25,8 +25,6 @@ else
     exit 1
 fi
 
-# force unmounting any previously mounted partition (left over from any failed run)
-# umount -f /mnt >/dev/null 2>&1 || true
 echo "mounting newroot to /mnt: $newroot" >&2
 if ! mount "$newroot" /mnt; then
     echo "Failed to mount $newroot" >&2
@@ -107,5 +105,6 @@ else
 fi
 
 # sync before unmounting
-sync; sync;
-umount -f -l "$newroot"
+sync
+# TODO: Check if unmounting is really required as it could hang here!
+# umount -f -l "$newroot"
