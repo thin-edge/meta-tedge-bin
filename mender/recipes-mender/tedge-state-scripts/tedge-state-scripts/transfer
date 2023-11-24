@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-echo "state-script version: 2" >&2
+echo "state-script version: 3" >&2
 #
 # Retain ssh server keys from the current root
 #
@@ -60,8 +60,14 @@ done
 # Check if this causes a problem if the service does not exist in the new image
 if [ -e /etc/systemd/system/multi-user.target.wants/tedge-agent.service ]; then
     echo "Copying thin-edge.io services symlink to enable services on startup"
-    cp -af /etc/systemd/system/multi-user.target.wants/tedge* /mnt/etc/systemd/system/multi-user.target.wants/
-    cp -af /etc/systemd/system/multi-user.target.wants/c8y* /mnt/etc/systemd/system/multi-user.target.wants/
+
+    if ls /etc/systemd/system/multi-user.target.wants/tedge* >/dev/null 2>&1; then
+        cp -af /etc/systemd/system/multi-user.target.wants/tedge* /mnt/etc/systemd/system/multi-user.target.wants/
+    fi
+
+    if ls /etc/systemd/system/multi-user.target.wants/c8y* >/dev/null 2>&1; then
+        cp -af /etc/systemd/system/multi-user.target.wants/c8y* /mnt/etc/systemd/system/multi-user.target.wants/
+    fi
 fi
 
 # sudoers
@@ -130,5 +136,4 @@ fi
 
 # sync before unmounting
 sync
-# TODO: Check if unmounting is really required as it could hang here!
-# umount -f -l "$newroot"
+umount "$newroot"
