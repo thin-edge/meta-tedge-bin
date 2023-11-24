@@ -45,6 +45,15 @@ done
 
 echo "mounted newroot to /mnt: $newroot" >&2
 
+# Save core services as presets
+echo "Saving presents" >&2
+rm -f /mnt/etc/systemd/system-preset/99-tedge-defaults.preset
+mkdir -p /mnt/etc/systemd/system-preset
+systemctl list-unit-files | grep enabled | grep -E "^tedge|^c8y|^mosquitto" | cut -d\  -f1 | while read -r UNIT_NAME; do
+    echo "Adding $UNIT_NAME to service preset" >&2
+    echo "enable $UNIT_NAME" >> /mnt/etc/systemd/system-preset/99-tedge-defaults.preset
+done
+
 # tedge files
 if [ -d /etc/tedge ]; then
     echo "Copying /etc/tedge to $newroot" >&2
