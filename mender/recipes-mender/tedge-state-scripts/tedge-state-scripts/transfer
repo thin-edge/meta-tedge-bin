@@ -55,6 +55,13 @@ systemctl list-unit-files | grep enabled | grep -E "^tedge|^c8y|^mosquitto" | cu
     echo "enable $UNIT_NAME" >> /mnt/etc/systemd/system-preset/98-thin-edge.preset
 done
 
+
+# WORKAROUND: Copy systemd symlinks so that the agent is enable by default
+if [ -e /etc/systemd/system/multi-user.target.wants/tedge-agent.service ]; then
+    echo "Copying tedge-agent service symlink to enable agent on startup"
+    cp -af /etc/systemd/system/multi-user.target.wants/tedge-agent.service /mnt/etc/systemd/system/multi-user.target.wants/
+fi
+
 # tedge files
 if [ -d /etc/tedge ]; then
     echo "Copying /etc/tedge to $newroot" >&2
