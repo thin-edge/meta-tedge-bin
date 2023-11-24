@@ -3,15 +3,14 @@ inherit mender-state-scripts
 LICENSE = "CLOSED"
 
 SRC_URI += " \
-    file://copy-direct;subdir=${PN}-${PV} \
-    file://backup-restore;subdir=${PN}-${PV} \
-    file://verify-tedge;subdir=${PN}-${PV} \
+    file://transfer;subdir=${BPN}-${PV} \
+    file://restore;subdir=${BPN}-${PV} \
+    file://verify-tedge;subdir=${BPN}-${PV} \
 "
 
 do_compile() {
-    cp copy-direct ${MENDER_STATE_SCRIPTS_DIR}/ArtifactInstall_Leave_00_copy-direct
-    cp backup-restore ${MENDER_STATE_SCRIPTS_DIR}/ArtifactInstall_Leave_50_backup-runtime
-    cp backup-restore ${MENDER_STATE_SCRIPTS_DIR}/ArtifactCommit_Enter_00_restore-runtime
+    cp transfer ${MENDER_STATE_SCRIPTS_DIR}/ArtifactInstall_Leave_00_transfer
+    cp restore ${MENDER_STATE_SCRIPTS_DIR}/ArtifactCommit_Enter_00_restore
     cp verify-tedge ${MENDER_STATE_SCRIPTS_DIR}/ArtifactCommit_Enter_50_verify-tedge
 }
 
