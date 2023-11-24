@@ -75,6 +75,16 @@ if [ -d /etc/sudoers.d ]; then
     cp -af /etc/sudoers.d/* /mnt/etc/sudoers.d/
 fi
 
+# mosquitto
+if [ -d /var/lib/mosquitto ]; then
+    echo "transferring mosquitto db" >&2
+    mkdir -p /mnt/var/lib/mosquitto
+    chown -R mosquitto:mosquitto /mnt/var/lib/mosquitto
+    if ls /var/lib/mosquitto/* >/dev/null 2>&1; then
+        cp -Rfa /var/lib/mosquitto/* /mnt/var/lib/mosquitto
+    fi
+fi
+
 # tedge files
 if [ -d /etc/tedge ]; then
     echo "Copying /etc/tedge to $newroot" >&2
