@@ -3,7 +3,7 @@ inherit mender-state-scripts
 LICENSE = "CLOSED"
 
 SRC_URI += " \
-    file://post_download;subdir=${PN}-${PV} \
+    file://copy_direct;subdir=${PN}-${PV} \
     file://backup_restore;subdir=${PN}-${PV} \
     file://verify_tedge_health;subdir=${PN}-${PV} \
 "
