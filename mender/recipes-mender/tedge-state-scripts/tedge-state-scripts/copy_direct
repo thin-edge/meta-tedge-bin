@@ -14,10 +14,12 @@ fi
 
 current=$("$FW_PRINTENV" mender_boot_part | awk -F = '{ print $2 }')
 
+# Note: The partitions are called from ArtifactInstall the "swap" has already occurred, so the new root partition is the "current" it is just not mounted yet
+# If the script was called in Install, then it would be the opposite
 if [ "$current" = "2" ]; then
-    newroot=/dev/mmcblk0p3
-elif [ "$current" = "3" ]; then
     newroot=/dev/mmcblk0p2
+elif [ "$current" = "3" ]; then
+    newroot=/dev/mmcblk0p3
 else
     echo "Unexpected current root: $current" >&2
     exit 1
@@ -104,4 +106,6 @@ else
     exit 1
 fi
 
+# sync before unmounting
+sync; sync;
 umount "$newroot"
