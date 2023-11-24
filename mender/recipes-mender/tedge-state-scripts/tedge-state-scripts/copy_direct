@@ -108,4 +108,4 @@ fi
 
 # sync before unmounting
 sync; sync;
-umount "$newroot"
+umount -f -l "$newroot"
