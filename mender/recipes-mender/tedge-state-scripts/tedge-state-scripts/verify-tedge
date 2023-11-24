@@ -1,5 +1,6 @@
 #!/bin/sh
 set -e
+echo "state-script version: 1" >&2
 
 OK=0
 RETRY_LATER=21

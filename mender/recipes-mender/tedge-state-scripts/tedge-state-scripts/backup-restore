@@ -1,5 +1,6 @@
 #!/bin/sh
 set -e
+echo "state-script version: 1" >&2
 #
 # Settings (used both in backup and restore)
 #
@@ -21,12 +22,6 @@ backup() {
         systemctl list-unit-files | grep enabled | grep -E "^tedge|^c8y|^mosquitto" | cut -d\  -f1 > "$SYSTEMD_STATE_ENABLED"
     fi
 
-    # if [ -n  "$(ls -A /var/tedge/)" ]; then
-    #     mkdir -p /data/var_tedge && cp -fr /var/tedge/* /data/var_tedge
-    # fi
-
-    rm -f "$BACKUP_DIR/etc_tedge.tgz"
-    tar -cvpzf "$BACKUP_DIR/etc_tedge.tgz" /etc/tedge/
 }
 
 ###################

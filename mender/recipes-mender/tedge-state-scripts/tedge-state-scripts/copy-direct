@@ -1,5 +1,6 @@
 #!/bin/sh
 set -e
+echo "state-script version: 1" >&2
 #
 # Retain ssh server keys from the current root
 #
