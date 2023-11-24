@@ -10,7 +10,7 @@ is_mapper_connected() {
     CLOUD_MAPPER="$1"
 
     if [ -n "$(tedge config get "$CLOUD_MAPPER.url" 2>/dev/null)" ]; then
-        tedge connect "$CLOUD_MAPPER" --test
+        tedge connect "$CLOUD_MAPPER" --test >&2
     else
         # If the configuration is not configured, then treat the device as healthy
         echo "Mapper is not configured: $CLOUD_MAPPER" >&2
