@@ -24,7 +24,8 @@ else
 fi
 
 # force unmounting any previously mounted partition (left over from any failed run)
-umount /mnt >/dev/null 2>&1 || true
+# umount -f /mnt >/dev/null 2>&1 || true
+echo "mounting newroot to /mnt: $newroot" >&2
 if ! mount "$newroot" /mnt; then
     echo "Failed to mount $newroot" >&2
     exit 1
@@ -42,9 +43,11 @@ do
     count=$((count + 1))
 done
 
+echo "mounted newroot to /mnt: $newroot" >&2
+
 # tedge files
 if [ -d /etc/tedge ]; then
-
+    echo "Copying /etc/tedge to $newroot" >&2
     if [ ! -d /mnt/etc/tedge ]; then
         mkdir -p /mnt/etc/tedge
         chown tedge:tedge /mnt/etc/tedge
@@ -55,6 +58,7 @@ if [ -d /etc/tedge ]; then
     VAR_TEDGE=$(tedge config get data.path)
     NEW_VAR_TEDGE="/mnt$VAR_TEDGE"
 
+    echo "Copying $VAR_TEDGE to $newroot" >&2
     if [ ! -d "$NEW_VAR_TEDGE" ]; then
         mkdir -p "$NEW_VAR_TEDGE"
         chown tedge:tedge "$NEW_VAR_TEDGE"
@@ -65,8 +69,11 @@ fi
 # ssh authorized keys
 if [ -d /home/root/.ssh ]; then
     if [ -f /home/root/.ssh/authorized_keys ]; then
-        if [ -f /mnt/home/root/.ssh/authorized_keys ]; then
-            cp /home/root/.ssh/authorized_keys /mnt/home/root/.ssh/authorized_keys
+        if [ ! -f /mnt/home/root/.ssh/authorized_keys ]; then
+            echo "Copying authorized_keys to $newroot" >&2
+            mkdir -p /mnt/home/root/.ssh
+            chmod 700 /mnt/home/root/.ssh
+            cp -Rfa /home/root/.ssh/* /mnt/home/root/.ssh/
         else
             echo "Found authorized_keys in new root, skipping copy" >&2
         fi
@@ -76,16 +83,24 @@ if [ -d /home/root/.ssh ]; then
 fi
 
 # ssh configuration
+SSH_SERVER_DIR=
 if [ -d /mnt/etc/ssh ]; then
-    keys=$(ls -l /mnt/etc/ssh/*key* 2>/dev/null | wc -l)
+    SSH_SERVER_DIR=etc/ssh
+elif [ -d /mnt/etc/dropbear ]; then
+    SSH_SERVER_DIR=etc/dropbear
+fi
+
+if [ -n "$SSH_SERVER_DIR" ]; then
+    keys=$(ls -l /mnt/"$SSH_SERVER_DIR"/*key* 2>/dev/null | wc -l)
 
     if [ "$keys" -eq 0 ]; then
-        cp /etc/ssh/*key* /mnt/etc/ssh
+        echo "Copying ssh server key (/$SSH_SERVER_DIR) to $newroot" >&2
+        cp "/$SSH_SERVER_DIR"/*key* "/mnt/$SSH_SERVER_DIR"
     else
         echo "Found ssh keys in new root, skipping copy" >&2
     fi
 else
-    echo "Failed to find a /etc/ssh on newroot partition" >&2
+    echo "Failed to find a ssh server config on newroot partition" >&2
     exit 1
 fi
 
