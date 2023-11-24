@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-echo "state-script version: 1" >&2
+echo "state-script version: 2" >&2
 #
 # Retain ssh server keys from the current root
 #
@@ -57,9 +57,16 @@ done
 
 
 # WORKAROUND: Copy systemd symlinks so that the agent is enable by default
+# Check if this causes a problem if the service does not exist in the new image
 if [ -e /etc/systemd/system/multi-user.target.wants/tedge-agent.service ]; then
-    echo "Copying tedge-agent service symlink to enable agent on startup"
-    cp -af /etc/systemd/system/multi-user.target.wants/tedge-agent.service /mnt/etc/systemd/system/multi-user.target.wants/
+    echo "Copying thin-edge.io services symlink to enable services on startup"
+    cp -af /etc/systemd/system/multi-user.target.wants/tedge* /mnt/etc/systemd/system/multi-user.target.wants/
+    cp -af /etc/systemd/system/multi-user.target.wants/c8y* /mnt/etc/systemd/system/multi-user.target.wants/
+fi
+
+# sudoers
+if [ -d /etc/sudoers.d ]; then
+    cp -af /etc/sudoers.d/* /mnt/etc/sudoers.d/
 fi
 
 # tedge files
