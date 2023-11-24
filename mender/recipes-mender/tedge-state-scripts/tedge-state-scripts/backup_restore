@@ -18,7 +18,7 @@ backup() {
 
     if command -V systemctl >/dev/null 2>&1; then
         echo "Saving systemd service state" >&2
-        systemctl list-unit-files | grep enabled | cut -d\  -f1 > "$SYSTEMD_STATE_ENABLED"
+        systemctl list-unit-files | grep enabled | grep -E "^tedge|^c8y|^mosquitto" | cut -d\  -f1 > "$SYSTEMD_STATE_ENABLED"
     fi
 
     # if [ -n  "$(ls -A /var/tedge/)" ]; then
