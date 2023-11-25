@@ -1,70 +1,43 @@
 #!/bin/sh
 set -e
-echo "state-script version: 4" >&2
-#
-# Retain ssh server keys from the current root
-#
-
-echo "$(mender show-artifact): Running $(basename "$0")" >&2
-
-FW_PRINTENV=$(which fw_printenv)
-
-if [ ! -x "$FW_PRINTENV" ]; then
-    exit 1
-fi
-
-current=$("$FW_PRINTENV" mender_boot_part | awk -F = '{ print $2 }')
-
-# Note: The partitions are called from ArtifactInstall the "swap" has already occurred, so the new root partition is the "current" it is just not mounted yet
-# If the script was called in Install, then it would be the opposite
-if [ "$current" = "2" ]; then
-    newroot=/dev/mmcblk0p2
-elif [ "$current" = "3" ]; then
-    newroot=/dev/mmcblk0p3
-else
-    echo "Unexpected current root: $current" >&2
-    exit 1
-fi
-
-# TODO: Check if already mounted
-if mountpoint -q /mnt; then
-    echo "Unmounting existing mount $newroot (/mnt)" >&2
-    umount /mnt
-fi
-echo "mounting newroot to /mnt: $newroot" >&2
-if ! mount "$newroot" /mnt; then
-    echo "Failed to mount $newroot" >&2
-    exit 1
-fi
-
-# wait for mountpoint
-count=0
-while ! mountpoint -q /mnt
-do
-    sleep 1
-    if [ "$count" -ge 30 ]; then
-        echo "timed out waiting for mount to be ready" >&2
-        exit 1
-    fi
-    count=$((count + 1))
-done
-
-echo "mounted newroot to /mnt: $newroot" >&2
+echo "state-script version: 5" >&2
 
 # Use trap to unmount in case of unexpected errors
 # unmount using mountpoint rather than device (in case it is mounted elsewhere)
-trap 'echo "Unmounting $newroot" >&2; sync; umount -l /mnt; trap - EXIT; exit' EXIT INT HUP
+trap_exit() {
+  umount -l /tmp/inactive_part ||:
+}
+trap trap_exit EXIT
+
+MENDER_ROOTFS_PART_A="/dev/mmcblk0p2"
+MENDER_ROOTFS_PART_B="/dev/mmcblk0p3"
+
+#
+# Retain ssh server keys from the current root
+#
+if mount | grep "${MENDER_ROOTFS_PART_A} on / "; then
+  inactive_part="${MENDER_ROOTFS_PART_B}"
+else
+  inactive_part="${MENDER_ROOTFS_PART_A}"
+fi
+
+target="/tmp/inactive_part"
+echo "Mounting ${inactive_part} to ${target}"
+mkdir -p "${target}"
+# mount -o ro ${inactive_part} /tmp/inactive_part
+mount ${inactive_part} "${target}"
+echo "mounted ${inactive_part} to ${target}" >&2
 
 # Save core services as presets
 echo "Saving presets" >&2
 
 # Note: ||: is needed as this can fail if the file does not exist (even when using rm -f!)
 # This might be a combination of a busybox thing and/or the way the volume is mounted
-rm -f /mnt/etc/systemd/system-preset/98-thin-edge.preset ||:
-mkdir -p /mnt/etc/systemd/system-preset
+rm -f "${target}/etc/systemd/system-preset/98-thin-edge.preset" ||:
+mkdir -p "${target}/etc/systemd/system-preset"
 systemctl list-unit-files | grep enabled | grep -E "^tedge|^c8y|^mosquitto" | cut -d\  -f1 | while read -r UNIT_NAME; do
     echo "Adding $UNIT_NAME to service preset" >&2
-    echo "enable $UNIT_NAME" >> /mnt/etc/systemd/system-preset/98-thin-edge.preset
+    echo "enable $UNIT_NAME" >> "${target}/etc/systemd/system-preset/98-thin-edge.preset"
 done
 
 
@@ -74,44 +47,44 @@ if [ -e /etc/systemd/system/multi-user.target.wants/tedge-agent.service ]; then
     echo "Copying thin-edge.io services symlink to enable services on startup"
 
     if ls /etc/systemd/system/multi-user.target.wants/tedge* >/dev/null 2>&1; then
-        cp -af /etc/systemd/system/multi-user.target.wants/tedge* /mnt/etc/systemd/system/multi-user.target.wants/
+        cp -af /etc/systemd/system/multi-user.target.wants/tedge* "${target}/etc/systemd/system/multi-user.target.wants/"
     fi
 
     if ls /etc/systemd/system/multi-user.target.wants/c8y* >/dev/null 2>&1; then
-        cp -af /etc/systemd/system/multi-user.target.wants/c8y* /mnt/etc/systemd/system/multi-user.target.wants/
+        cp -af /etc/systemd/system/multi-user.target.wants/c8y* "${target}/etc/systemd/system/multi-user.target.wants/"
     fi
 fi
 
 # sudoers
 if [ -d /etc/sudoers.d ]; then
-    cp -af /etc/sudoers.d/* /mnt/etc/sudoers.d/
+    cp -af /etc/sudoers.d/* "${target}/etc/sudoers.d/"
 fi
 
 # mosquitto
 if [ -d /var/lib/mosquitto ]; then
     echo "transferring mosquitto db" >&2
-    mkdir -p /mnt/var/lib/mosquitto
-    chown -R mosquitto:mosquitto /mnt/var/lib/mosquitto
+    mkdir -p "${target}/var/lib/mosquitto"
+    chown -R mosquitto:mosquitto "${target}/var/lib/mosquitto"
     if ls /var/lib/mosquitto/* >/dev/null 2>&1; then
-        cp -Rfa /var/lib/mosquitto/* /mnt/var/lib/mosquitto
+        cp -Rfa /var/lib/mosquitto/* "${target}/var/lib/mosquitto"
     fi
 fi
 
 # tedge files
 if [ -d /etc/tedge ]; then
-    echo "Copying /etc/tedge to $newroot" >&2
-    if [ ! -d /mnt/etc/tedge ]; then
-        mkdir -p /mnt/etc/tedge
-        chown tedge:tedge /mnt/etc/tedge
+    echo "Copying /etc/tedge" >&2
+    if [ ! -d "${target}/etc/tedge" ]; then
+        mkdir -p "${target}/etc/tedge"
+        chown tedge:tedge "${target}/etc/tedge"
     fi
     # TODO: Does a symlink to the /data/tedge/.agent cause a problem here?
-    cp -RfaH /etc/tedge/* /mnt/etc/tedge
+    cp -RfaH /etc/tedge/* "${target}/etc/tedge"
 
     # data files
     VAR_TEDGE=$(tedge config get data.path)
-    NEW_VAR_TEDGE="/mnt$VAR_TEDGE"
+    NEW_VAR_TEDGE="${target}${VAR_TEDGE}"
 
-    echo "Copying $VAR_TEDGE to $newroot" >&2
+    echo "Copying $VAR_TEDGE" >&2
     if [ ! -d "$NEW_VAR_TEDGE" ]; then
         mkdir -p "$NEW_VAR_TEDGE"
         chown tedge:tedge "$NEW_VAR_TEDGE"
@@ -122,11 +95,11 @@ fi
 # ssh authorized keys
 if [ -d /home/root/.ssh ]; then
     if [ -f /home/root/.ssh/authorized_keys ]; then
-        if [ ! -f /mnt/home/root/.ssh/authorized_keys ]; then
-            echo "Copying authorized_keys to $newroot" >&2
-            mkdir -p /mnt/home/root/.ssh
-            chmod 700 /mnt/home/root/.ssh
-            cp -Rfa /home/root/.ssh/* /mnt/home/root/.ssh/
+        if [ ! -f "${target}/home/root/.ssh/authorized_keys" ]; then
+            echo "Copying authorized_keys" >&2
+            mkdir -p "${target}/home/root/.ssh"
+            chmod 700 "${target}/home/root/.ssh"
+            cp -Rfa /home/root/.ssh/* "${target}/home/root/.ssh/"
         else
             echo "Found authorized_keys in new root, skipping copy" >&2
         fi
@@ -137,18 +110,18 @@ fi
 
 # ssh configuration
 SSH_SERVER_DIR=
-if [ -d /mnt/etc/ssh ]; then
+if [ -d "${target}/etc/ssh" ]; then
     SSH_SERVER_DIR=etc/ssh
-elif [ -d /mnt/etc/dropbear ]; then
+elif [ -d "${target}/etc/dropbear" ]; then
     SSH_SERVER_DIR=etc/dropbear
 fi
 
 if [ -n "$SSH_SERVER_DIR" ]; then
-    keys=$(ls -l /mnt/"$SSH_SERVER_DIR"/*key* 2>/dev/null | wc -l)
+    keys=$(ls -l "${target}/${SSH_SERVER_DIR}"/*key* 2>/dev/null | wc -l)
 
     if [ "$keys" -eq 0 ]; then
-        echo "Copying ssh server key (/$SSH_SERVER_DIR) to $newroot" >&2
-        cp "/$SSH_SERVER_DIR"/*key* "/mnt/$SSH_SERVER_DIR"
+        echo "Copying ssh server key (/$SSH_SERVER_DIR)" >&2
+        cp "/${SSH_SERVER_DIR}"/*key* "${target}/${SSH_SERVER_DIR}"
     else
         echo "Found ssh keys in new root, skipping copy" >&2
     fi
@@ -156,3 +129,5 @@ else
     echo "Failed to find a ssh server config on newroot partition" >&2
     exit 1
 fi
+
+exit 0
