@@ -105,6 +105,14 @@ if [ -d /etc/tedge ]; then
         mkdir -p "${target}/etc/tedge"
         chown tedge:tedge "${target}/etc/tedge"
     fi
+
+    # TODO: Check if the .agent folder is overwritten by the following cp command
+    progress "Backup .agent folder to /data/tedge_agent/"
+    mkdir -p /data/tedge_agent
+    if ls /etc/tedge/.agent/* >/dev/null 2>&1; then
+        cp -a /etc/tedge/.agent/* /data/tedge_agent/
+    fi
+
     # TODO: Does a symlink to the /data/tedge/.agent cause a problem here?
     cp -RfaH /etc/tedge/* "${target}/etc/tedge"
 
