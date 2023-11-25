@@ -26,6 +26,11 @@ else
     exit 1
 fi
 
+# TODO: Check if already mounted
+if mountpoint -q /mnt; then
+    echo "Unmounting existing mount $newroot (/mnt)" >&2
+    umount /mnt
+fi
 echo "mounting newroot to /mnt: $newroot" >&2
 if ! mount "$newroot" /mnt; then
     echo "Failed to mount $newroot" >&2
@@ -48,7 +53,7 @@ echo "mounted newroot to /mnt: $newroot" >&2
 
 # Use trap to unmount in case of unexpected errors
 # unmount using mountpoint rather than device (in case it is mounted elsewhere)
-trap 'echo "Unmounting $newroot" >&2; sync; umount -l /mmt; trap - EXIT; exit' EXIT INT HUP
+trap 'echo "Unmounting $newroot" >&2; sync; umount -l /mnt; trap - EXIT; exit' EXIT INT HUP
 
 # Save core services as presets
 echo "Saving presets" >&2
