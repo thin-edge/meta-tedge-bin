@@ -8,6 +8,15 @@ trap_exit() {
     echo "Unmounting"
     sync "/tmp/inactive_part" ||:
     umount -l /tmp/inactive_part &
+    i=0
+    while [ "$i" -lt 5 ]; do
+        if ! mountpoint -q /tmp/inactive_part; then
+            echo "inactive partition has been unmounted"
+            break
+        fi
+        i=$((i + 1))
+        sleep 1
+    done
 }
 trap trap_exit EXIT
 
@@ -144,6 +153,19 @@ if [ -n "$SSH_SERVER_DIR" ]; then
     fi
 else
     progress "Failed to find a ssh server config on newroot partition"
+    exit 1
+fi
+
+# Backup systemd network files
+if [ -d "${target}/etc/systemd/network" ]; then
+    networks=$(ls -l "/etc/systemd/network/"*.network 2>/dev/null | wc -l)
+
+    if [ "$networks" -gt 0 ]; then
+        cp /etc/systemd/network/*.network "${target}/etc/systemd/network"
+        progress "Copied /etc/systemd/network"
+    fi
+else
+    progress "Failed to find a /etc/systemd/network on newroot partition"
     exit 1
 fi
 
