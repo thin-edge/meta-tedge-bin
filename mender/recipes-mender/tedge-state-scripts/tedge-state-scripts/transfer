@@ -7,16 +7,18 @@ echo "state-script version: 5" >&2
 trap_exit() {
     echo "Unmounting"
     sync "/tmp/inactive_part" ||:
-    umount -l /tmp/inactive_part &
-    i=0
-    while [ "$i" -lt 5 ]; do
-        if ! mountpoint -q /tmp/inactive_part; then
-            echo "inactive partition has been unmounted"
-            break
-        fi
-        i=$((i + 1))
-        sleep 1
-    done
+
+    # TODO: calling umount hangs here!
+    # umount -l /tmp/inactive_part &
+    # i=0
+    # while [ "$i" -lt 5 ]; do
+    #     if ! mountpoint -q /tmp/inactive_part; then
+    #         echo "inactive partition has been unmounted"
+    #         break
+    #     fi
+    #     i=$((i + 1))
+    #     sleep 1
+    # done
 }
 trap trap_exit EXIT
 
