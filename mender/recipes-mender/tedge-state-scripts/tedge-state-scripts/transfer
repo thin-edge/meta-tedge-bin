@@ -5,7 +5,8 @@ echo "state-script version: 5" >&2
 # Use trap to unmount in case of unexpected errors
 # unmount using mountpoint rather than device (in case it is mounted elsewhere)
 trap_exit() {
-  umount -l /tmp/inactive_part ||:
+    sync "/tmp/inactive_part" ||:
+    umount -l /tmp/inactive_part ||:
 }
 trap trap_exit EXIT
 
@@ -24,6 +25,9 @@ fi
 target="/tmp/inactive_part"
 echo "Mounting ${inactive_part} to ${target}"
 mkdir -p "${target}"
+
+# DEBUG: Wait before mounting (to give time for the partition write to finish?)
+sleep 5
 # mount -o ro ${inactive_part} /tmp/inactive_part
 mount ${inactive_part} "${target}"
 echo "mounted ${inactive_part} to ${target}" >&2
