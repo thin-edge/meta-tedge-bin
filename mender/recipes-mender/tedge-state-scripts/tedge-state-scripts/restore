@@ -10,15 +10,16 @@ EXIT_OK=0
 #
 # reconnect mappers (to enforce regeneration of bridge files (to add/remove values as required))
 #
-MAPPERS="c8y az aws"
-for name in $MAPPERS; do
-    if [ -n "$(tedge config get "${name}.url" 2>/dev/null)" ]; then
-        # Try reconnecting, but ignore any failures as it could be due to connectivity problems, and these are detected downstream
-        # using a proper retry mechanism
-        tedge reconnect "${name}" >&2 || true
-    else
-        echo "Skipping mapper as it is not configured. ${name}" >&2
-    fi
-done
+# FIXME: Don't execute reconnect as reconnecting will restart the tedge-agent!
+# MAPPERS="c8y az aws"
+# for name in $MAPPERS; do
+#     if [ -n "$(tedge config get "${name}.url" 2>/dev/null)" ]; then
+#         # Try reconnecting, but ignore any failures as it could be due to connectivity problems, and these are detected downstream
+#         # using a proper retry mechanism
+#         tedge reconnect "${name}" >&2 || true
+#     else
+#         echo "Skipping mapper as it is not configured. ${name}" >&2
+#     fi
+# done
 
 exit "$EXIT_OK"
