@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-echo "state-script version: 3" >&2
+echo "state-script version: 4" >&2
 #
 # Retain ssh server keys from the current root
 #
@@ -46,9 +46,16 @@ done
 
 echo "mounted newroot to /mnt: $newroot" >&2
 
+# Use trap to unmount in case of unexpected errors
+# unmount using mountpoint rather than device (in case it is mounted elsewhere)
+trap 'echo "Unmounting $newroot" >&2; sync; umount -l /mmt; trap - EXIT; exit' EXIT INT HUP
+
 # Save core services as presets
-echo "Saving presents" >&2
-rm -f /mnt/etc/systemd/system-preset/98-thin-edge.preset
+echo "Saving presets" >&2
+
+# Note: ||: is needed as this can fail if the file does not exist (even when using rm -f!)
+# This might be a combination of a busybox thing and/or the way the volume is mounted
+rm -f /mnt/etc/systemd/system-preset/98-thin-edge.preset ||:
 mkdir -p /mnt/etc/systemd/system-preset
 systemctl list-unit-files | grep enabled | grep -E "^tedge|^c8y|^mosquitto" | cut -d\  -f1 | while read -r UNIT_NAME; do
     echo "Adding $UNIT_NAME to service preset" >&2
@@ -92,7 +99,8 @@ if [ -d /etc/tedge ]; then
         mkdir -p /mnt/etc/tedge
         chown tedge:tedge /mnt/etc/tedge
     fi
-    cp -Rfa /etc/tedge/* /mnt/etc/tedge
+    # TODO: Does a symlink to the /data/tedge/.agent cause a problem here?
+    cp -RfaH /etc/tedge/* /mnt/etc/tedge
 
     # data files
     VAR_TEDGE=$(tedge config get data.path)
@@ -143,7 +151,3 @@ else
     echo "Failed to find a ssh server config on newroot partition" >&2
     exit 1
 fi
-
-# sync before unmounting
-sync
-umount "$newroot"
