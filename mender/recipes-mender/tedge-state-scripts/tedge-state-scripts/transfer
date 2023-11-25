@@ -47,7 +47,7 @@ mkdir -p "${target}"
 sleep 5
 # mount -o ro ${inactive_part} /tmp/inactive_part
 mount ${inactive_part} "${target}"
-progress "mounted ${inactive_part} to ${target}"
+progress "Mounted ${inactive_part} to ${target}"
 
 # Save core services as presets
 progress "Saving presets"
@@ -107,6 +107,11 @@ if [ -d /etc/tedge ]; then
     fi
     # TODO: Does a symlink to the /data/tedge/.agent cause a problem here?
     cp -RfaH /etc/tedge/* "${target}/etc/tedge"
+
+    # FIXME: tedge-agent should support a configurable location of .agent
+    #Override the .agent folder with a symlink to the persist partition
+    rm -f "${target}/etc/tedge/.agent" ||:
+    ln -s /data/tedge/.agent "${target}/etc/tedge/.agent"
 
     # data files
     VAR_TEDGE=$(tedge config get data.path)
