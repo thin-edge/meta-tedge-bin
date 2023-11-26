@@ -155,7 +155,7 @@ executing() {
         echo "Firmware update (id=$CMD_ID): $current_partition -> $next_partition"
         echo "---------------------------------------------------------------------------"
     } >> "$LOG_FILE"
-    log "Starting firmware update. Current parition is $(get_current_partition), so update will be applied to $next_partition"
+    log "Starting firmware update. Current partition is $(get_current_partition), so update will be applied to $next_partition"
 }
 
 download() {
