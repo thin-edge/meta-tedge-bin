@@ -3,8 +3,11 @@ set -e
 ON_SUCCESS="successful"
 ON_ERROR="failed"
 ON_RESTART="restart"
+FIRMWARE_NAME=
+FIRMWARE_VERSION=
 FIRMWARE_URL=
 CMD_ID=x
+FIRMWARE_META_FILE=/etc/tedge/.firmware
 LOG_FILE=/etc/tedge/firmware_update.log
 MANUAL_DOWNLOAD=1
 
@@ -60,6 +63,14 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --id)
             CMD_ID="$2"
+            shift
+            ;;
+        --firmware-name)
+            FIRMWARE_NAME="$2"
+            shift
+            ;;
+        --firmware-version)
+            FIRMWARE_VERSION="$2"
             shift
             ;;
         --on-success)
@@ -132,8 +143,7 @@ get_current_partition() {
 }
 
 executing() {
-    hot=$(get_current_partition)
-    log "Starting firmware update: current_partition=$hot"
+    log "Starting firmware update. partition=$(get_current_partition)"
 }
 
 download() {
@@ -201,7 +211,12 @@ commit() {
 
     case "$MENDER_CODE" in
         0)
-            log "Commit successful. current_partition=$(get_current_partition)"
+            log "Commit successful. new default partition is $(get_current_partition)"
+
+            # Save firmware meta information to file (for reading on startup during normal operation)
+            local_log "Saving firmware info to $FIRMWARE_META_FILE"
+            printf 'FIRMWARE_NAME=%s\nFIRMWARE_VERSION=%s\nFIRMWARE_URL=%s\n' "$FIRMWARE_NAME" "$FIRMWARE_VERSION" "$FIRMWARE_URL" > "$FIRMWARE_META_FILE"
+
             next_state "$ON_SUCCESS"
             ;;
         2)
@@ -225,12 +240,11 @@ case "$ACTION" in
     commit) commit; ;;
     restarted)
 	    wait_for_network ||:
-        log "Device has been restarted...continuing workflow. current_partition=$(get_current_partition)"
+        log "Device has been restarted...continuing workflow. partition=$(get_current_partition)"
         next_state "$ON_SUCCESS"
         ;;
     rollback_successful)
-        log "Rollback complete. current_partition=$(get_current_partition)"
-        next_state "$ON_SUCCESS" "Firmware update failed, but the rollback was successful. current_partition=$(get_current_partition)"
+        next_state "$ON_SUCCESS" "Firmware update failed, but the rollback was successful. partition=$(get_current_partition)"
         ;;
     failed_restart)
         # There is no success/failed action here, we always transition to the next state
