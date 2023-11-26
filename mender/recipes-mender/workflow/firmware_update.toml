@@ -7,6 +7,7 @@ next = ["scheduled"]
 next = ["executing"]
 
 [executing]
+script = "/etc/tedge/operations/mender_workflow.sh executing --id ${.topic.cmd_id} --on-success download"
 next = ["download"]
 
 [download]

@@ -16,8 +16,19 @@ log() {
     echo "$msg" >&2
 
     # publish to pub for better resolution
-    tedge mqtt pub -q 1 te/device/main///e/firmware_update "{\"text\":\"Workflow (log): [cmd=$CMD_ID, current=$ACTION] $*\"}"
+    current_partition=$(get_current_partition)
+    tedge mqtt pub -q 2 te/device/main///e/firmware_update "{\"text\":\"Firmware Workflow: [$ACTION] $*\",\"command_id\":\"$CMD_ID\",\"state\":\"$ACTION\",\"partition\":\"$current_partition\"}"
     sleep 1
+
+    if [ -n "$LOG_FILE" ]; then
+        echo "$msg" >> "$LOG_FILE"
+    fi
+}
+
+local_log() {
+    # Only log locally and don't push to the cloud
+    msg="$(date +%Y-%m-%dT%H:%M:%S) [cmd=$CMD_ID, current=$ACTION] $*"
+    echo "$msg" >&2
 
     if [ -n "$LOG_FILE" ]; then
         echo "$msg" >> "$LOG_FILE"
@@ -33,10 +44,10 @@ next_state() {
     fi
 
     if [ -n "$reason" ]; then
-        tedge mqtt pub -q 1 te/device/main///e/firmware_update "{\"text\":\"Workflow (state): Moving to next State: $status. reason=$reason\"}"
+        log "Moving to next State: $status. reason=$reason"
         printf '{"status":"%s","reason":"%s"}\n' "$status" "$reason"
     else
-        tedge mqtt pub -q 1 te/device/main///e/firmware_update "{\"text\":\"Workflow (state): Moving to next State: $status\"}"
+        log "Moving to next State: $status"
         printf '{"status":"%s"}\n' "$status"
     fi
     sleep 1
@@ -70,6 +81,60 @@ while [ $# -gt 0 ]; do
     esac
     shift
 done
+
+wait_for_network() {
+    #
+    # Wait for network to be ready but don't block
+    #
+    attempt=0
+    max_attempts=10
+    # Network ready: 0 = no, 1 = yes
+    ready=0
+    local_log "Waiting for network to be ready, and time to be synced"
+
+    while [ "$attempt" -lt "$max_attempts" ]; do
+        # TIME_SYNC_ACTIVE=$(timedatectl | grep NTP | awk '{print $NF}')
+        TIME_IN_SYNC=$(timedatectl | awk '/System clock synchronized/{print $NF}')
+        case "${TIME_IN_SYNC}" in
+            yes)
+                ready=1
+                break
+                ;;
+        esac
+        attempt=$((attempt + 1))
+        local_log "Network not ready yet (attempt: $attempt from $max_attempts)"
+        sleep 30
+    done
+
+    # Duration can only be based on uptime since the device's clock might not be synced yet, so 'date' will not be monotonic
+    duration=$(awk '{print $1}' /proc/uptime)
+
+    local_log "Network: ready=$ready (after ${duration}s)"
+    if [ "$ready" = "1" ]; then
+        log "Network is ready after ${duration}s (from startup)"
+        return 0
+    fi
+
+    # Don't send cloud message if it is not ready
+    return 1
+}
+
+get_current_partition() {
+    MENDER_ROOTFS_PART_A="/dev/mmcblk0p2"
+    #MENDER_ROOTFS_PART_B="/dev/mmcblk0p3"
+    current=""
+    if mount | grep "${MENDER_ROOTFS_PART_A} on / " >/dev/null; then
+        current="A"
+    else
+        current="B"
+    fi
+    echo "$current"
+}
+
+executing() {
+    hot=$(get_current_partition)
+    log "Starting firmware update: current_partition=$hot"
+}
 
 download() {
     status="$1"
@@ -117,7 +182,7 @@ install() {
             next_state "$ON_SUCCESS"
             ;;
         4)
-            log "OK, but REBOOT required"
+            log "OK, REBOOT required"
             next_state "$ON_RESTART"
             ;;
         *)
@@ -136,7 +201,7 @@ commit() {
 
     case "$MENDER_CODE" in
         0)
-            log "Commit successful"
+            log "Commit successful. current_partition=$(get_current_partition)"
             next_state "$ON_SUCCESS"
             ;;
         2)
@@ -144,23 +209,28 @@ commit() {
             next_state "$ON_ERROR" "Nothing to commit. Either the boot loader triggered the rollback, the device was rebooted after switching to new partition, or someone did a manual rollback!"
             ;;
         *)
-            log "Mender returned code: $MENDER_CODE"
+            log "Mender returned code: $MENDER_CODE. Rolling back to previous partition"
             next_state "$ON_ERROR"
             ;;
     esac
 }
 
 case "$ACTION" in
+    executing)
+        executing
+        next_state "$ON_SUCCESS"
+        ;;
     download) download "$ON_SUCCESS" "$FIRMWARE_URL"; ;;
     install) install "$FIRMWARE_URL"; ;;
     commit) commit; ;;
     restarted)
-	    sleep 15
-        log "Device has been restarted...continuing workflow"
+	    wait_for_network ||:
+        log "Device has been restarted...continuing workflow. current_partition=$(get_current_partition)"
         next_state "$ON_SUCCESS"
         ;;
     rollback_successful)
-        next_state "$ON_SUCCESS" "Firmware update failed, but the rollback was successful"
+        log "Rollback complete. current_partition=$(get_current_partition)"
+        next_state "$ON_SUCCESS" "Firmware update failed, but the rollback was successful. current_partition=$(get_current_partition)"
         ;;
     failed_restart)
         # There is no success/failed action here, we always transition to the next state
