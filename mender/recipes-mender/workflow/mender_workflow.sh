@@ -95,7 +95,8 @@ done
 
 wait_for_network() {
     #
-    # Wait for network to be ready but don't block
+    # Wait for network to be ready but don't block if still not available as the mender commit
+    # might be used to restore network connectivity.
     #
     attempt=0
     max_attempts=10
@@ -188,11 +189,11 @@ install() {
 
     case "$MENDER_CODE" in
         0)
-            log "OK, no REBOOT required"
+            log "OK, no RESTART required"
             next_state "$ON_SUCCESS"
             ;;
         4)
-            log "OK, REBOOT required"
+            log "OK, RESTART required"
             next_state "$ON_RESTART"
             ;;
         *)
@@ -225,7 +226,7 @@ commit() {
             ;;
         *)
             log "Mender returned code: $MENDER_CODE. Rolling back to previous partition"
-            next_state "$ON_ERROR"
+            next_state "$ON_RESTART"
             ;;
     esac
 }
