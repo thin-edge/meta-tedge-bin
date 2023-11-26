@@ -90,6 +90,12 @@ fi
 
 # mosquitto
 if [ -d /var/lib/mosquitto ]; then
+    # TODO: Check if mosquitto should be stopped instead
+    # Tell mosquitto to write to file before copying the db
+    progress "Sending SIGUSR1 to mosquitto to force writing to db (then wait a few seconds)"
+    systemctl kill --signal=SIGUSR1 mosquitto.service
+    sleep 5
+
     progress "Copying mosquitto db"
     mkdir -p "${target}/var/lib/mosquitto"
     chown -R mosquitto:mosquitto "${target}/var/lib/mosquitto"
