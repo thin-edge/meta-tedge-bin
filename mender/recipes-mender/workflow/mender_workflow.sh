@@ -143,8 +143,19 @@ get_current_partition() {
     echo "$current"
 }
 
+get_next_partition() {
+    [ "$1" = "A" ] && echo "B" || echo "A"
+}
+
 executing() {
-    log "Starting firmware update. partition=$(get_current_partition)"
+    current_partition=$(get_current_partition)
+    next_partition=$(get_next_partition "$current_partition")
+    {
+        echo "---------------------------------------------------------------------------"
+        echo "Firmware update (id=$CMD_ID): $current_partition -> $next_partition"
+        echo "---------------------------------------------------------------------------"
+    } >> "$LOG_FILE"
+    log "Starting firmware update. Current parition is $(get_current_partition), so update will be applied to $next_partition"
 }
 
 download() {
