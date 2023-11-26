@@ -233,7 +233,7 @@ commit() {
             ;;
         2)
             log "Nothing to commit (update is not in progress)"
-            next_state "$ON_ERROR" "Nothing to commit. Either the boot loader triggered the rollback, the device was rebooted after switching to new partition, or someone did a manual rollback!"
+            next_state "$ON_ERROR" "Nothing to commit. Either the boot loader triggered the rollback, the device was rebooted after switching to new partition, or someone did a manual commit or rollback!"
             ;;
         *)
             log "Mender returned code: $MENDER_CODE. Rolling back to previous partition"
