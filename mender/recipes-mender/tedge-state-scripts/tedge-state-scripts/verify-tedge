@@ -19,13 +19,20 @@ is_mapper_connected() {
     fi
 }
 
-is_healthy() {
+all_healthy() {
+    # Check all mappers before returning, and fail if
+    # any of the configured mappers are not healthy
+    failed=0
     for name in $MAPPERS; do
-        is_mapper_connected "$name"
+        if ! is_mapper_connected "$name"; then
+            failed=1
+        fi
     done
+
+    return "$failed"
 }
 
-if ! is_healthy; then
+if ! all_healthy; then
     exit "$RETRY_LATER"
 fi
 
