@@ -223,7 +223,7 @@ commit() {
 
     case "$MENDER_CODE" in
         0)
-            log "Commit successful. new default partition is $(get_current_partition)"
+            log "Commit successful. New default partition is $(get_current_partition)"
 
             # Save firmware meta information to file (for reading on startup during normal operation)
             local_log "Saving firmware info to $FIRMWARE_META_FILE"
