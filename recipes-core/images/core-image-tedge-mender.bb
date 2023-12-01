@@ -5,3 +5,6 @@ IMAGE_INSTALL:append = " \
     tedge-firmware \
     ${@bb.utils.contains('INIT_MANAGER','systemd','tedge-bootstrap','',d)} \
 "
+
+# Add Network Manager
+IMAGE_INSTALL += "networkmanager networkmanager-bash-completion networkmanager-nmtui"
