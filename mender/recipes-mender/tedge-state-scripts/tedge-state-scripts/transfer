@@ -177,6 +177,16 @@ else
     exit 1
 fi
 
+# Backup network manager connection config
+if [ -d /etc/NetworkManager/system-connections ]; then
+    networks=$(ls -l "/etc/NetworkManager/system-connections/"* 2>/dev/null | wc -l)
+
+    if [ "$networks" -gt 0 ]; then
+        cp /etc/NetworkManager/system-connections/* "${target}/etc/NetworkManager/system-connections"
+        progress "Copied /etc/NetworkManager/system-connections"
+    fi
+fi
+
 # Backup systemd network files
 if [ -d "${target}/etc/systemd/network" ]; then
     networks=$(ls -l "/etc/systemd/network/"*.network 2>/dev/null | wc -l)
