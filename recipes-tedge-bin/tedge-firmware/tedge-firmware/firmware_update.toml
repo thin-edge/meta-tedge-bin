@@ -1,0 +1,49 @@
+operation = "firmware_update"
+
+[init]
+next = ["scheduled"]
+
+[scheduled]
+next = ["executing"]
+
+[executing]
+script = "/usr/bin/mender_workflow.sh executing --on-success download"
+next = ["download"]
+
+[download]
+script = "/usr/bin/mender_workflow.sh download --url ${.payload.remoteUrl} --on-success install --on-error failed"
+next = ["install"]
+
+[install]
+script = "/usr/bin/mender_workflow.sh install --url ${.payload.url} --on-success commit --on-restart restart --on-error failed"
+next = ["commit", "restart", "failed"]
+
+[restart]
+script = "restart"
+next = ["restarting", "restarted", "failed_restart"]
+
+[restarted]
+script = "/usr/bin/mender_workflow.sh restarted --on-success commit"
+next = ["commit"]
+
+[failed_restart]
+script = "/usr/bin/mender_workflow.sh failed_restart --on-success failed --on-error failed"
+next = ["failed"]
+
+[commit]
+script = "/usr/bin/mender_workflow.sh commit --firmware-name ${.payload.name} --firmware-version ${.payload.version} --url ${.payload.remoteUrl} --on-success successful --on-restart rollback_restart --on-error failed"
+next = ["successful", "rollback_restart"]
+
+[rollback_restart]
+script = "restart"
+next = ["restarting", "rollback_successful", "failed"]
+
+[rollback_successful]
+script = "/usr/bin/mender_workflow.sh rollback_successful --on-success failed"
+next = ["failed"]
+
+[successful]
+next = []
+
+[failed]
+next = []
