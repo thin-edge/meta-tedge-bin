@@ -3,13 +3,15 @@ inherit mender-state-scripts
 LICENSE = "CLOSED"
 
 SRC_URI += " \
-    file://tedge-install-leave-script;subdir=${PN}-${PV} \
-    file://tedge-commit-enter-script;subdir=${PN}-${PV} \
+    file://transfer;subdir=${BPN}-${PV} \
+    file://restore;subdir=${BPN}-${PV} \
+    file://verify-tedge;subdir=${BPN}-${PV} \
 "
 
 do_compile() {
-    cp tedge-install-leave-script ${MENDER_STATE_SCRIPTS_DIR}/ArtifactInstall_Leave_00
-    cp tedge-commit-enter-script ${MENDER_STATE_SCRIPTS_DIR}/ArtifactCommit_Enter_00
+    cp transfer ${MENDER_STATE_SCRIPTS_DIR}/ArtifactInstall_Leave_00_transfer
+    cp restore ${MENDER_STATE_SCRIPTS_DIR}/ArtifactCommit_Enter_00_restore
+    cp verify-tedge ${MENDER_STATE_SCRIPTS_DIR}/ArtifactCommit_Enter_50_verify-tedge
 }
 
 ALLOW_EMPTY:${PN} = "1"
