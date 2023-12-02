@@ -178,7 +178,7 @@ else
 fi
 
 # Backup network manager connection config
-if [ -d /etc/NetworkManager/system-connections ]; then
+if [ -d "${target}/etc/NetworkManager/system-connections" ]; then
     networks=$(ls -l "/etc/NetworkManager/system-connections/"* 2>/dev/null | wc -l)
 
     if [ "$networks" -gt 0 ]; then
