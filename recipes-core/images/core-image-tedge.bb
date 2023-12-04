@@ -2,6 +2,8 @@ require recipes-core/images/core-image-base.bb
 
 IMAGE_INSTALL:append = " \
     tedge \
+    ${@bb.utils.contains('INIT_MANAGER','systemd','tedge-bootstrap','',d)} \
+    ${@bb.utils.contains('INIT_MANAGER','systemd','tedge-inventory','',d)} \
 "
 
 # Used fix uid/gid to avoid permission problems on /data
