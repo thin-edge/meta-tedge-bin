@@ -32,6 +32,10 @@ all_healthy() {
     return "$failed"
 }
 
+# Try fixing any possible mosquitto permissions first
+# In case if the pervious image uses different uid/gid for the mosquitto user
+chown mosquitto:mosquitto /etc/tedge/device-certs/* ||:
+
 if ! all_healthy; then
     exit "$RETRY_LATER"
 fi
