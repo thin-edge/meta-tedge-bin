@@ -1,13 +1,20 @@
 #!/bin/sh
 set -e
-ON_SUCCESS="successful"
-ON_ERROR="failed"
-ON_RESTART="restart"
 FIRMWARE_NAME=
 FIRMWARE_VERSION=
 FIRMWARE_URL=
 FIRMWARE_META_FILE=/etc/tedge/.firmware
 MANUAL_DOWNLOAD=1
+
+# Exit codes
+OK=0
+FAILED=1
+
+# Detect if sudo should be used or not. It will be used if it is found
+SUDO=""
+if command -V sudo >/dev/null 2>&1; then
+    SUDO="sudo"
+fi
 
 ACTION="$1"
 shift
@@ -28,32 +35,17 @@ local_log() {
     echo "$msg" >&2
 }
 
-next_state_with_context() {
+update_state() {
     echo ":::begin-tedge:::"
     echo "$1"
     echo ":::end-tedge:::"
     sleep 1
 }
 
-next_state() {
-    status="$1"
-    reason=
-
-    if [ $# -gt 1 ]; then
-        reason="$2"
-    fi
-
-    message=
-    if [ -n "$reason" ]; then
-        log "Moving to next State: $status. reason=$reason"
-        message=$(printf '{"status":"%s","reason":"%s"}' "$status" "$reason")
-    else
-        log "Moving to next State: $status"
-        message=$(printf '{"status":"%s"}' "$status")
-    fi
-
-    next_state_with_context "$message"
-    sleep 1
+set_reason() {
+    reason="$1"
+    message=$(printf '{"reason":"%s"}' "$reason")
+    update_state "$message"
 }
 
 #
@@ -71,18 +63,6 @@ while [ $# -gt 0 ]; do
             ;;
         --url)
             FIRMWARE_URL="$2"
-            shift
-            ;;
-        --on-success)
-            ON_SUCCESS="$2"
-            shift
-            ;;
-        --on-error)
-            ON_ERROR="$2"
-            shift
-            ;;
-        --on-restart)
-            ON_RESTART="$2"
             shift
             ;;
     esac
@@ -153,8 +133,7 @@ executing() {
 }
 
 download() {
-    status="$1"
-    url="$2"
+    url="$1"
 
     MANUAL_DOWNLOAD=0
 
@@ -194,39 +173,37 @@ download() {
         log "Manually downloading artifact from $tedge_url and saving to $local_file"
         wget -O "$local_file" "$tedge_url" >&2
         log "Downloaded file from: $tedge_url"
-        next_state_with_context "$(printf '{"status":"%s","url":"%s"}\n' "$status" "$local_file")"
+        update_state "$(printf '{"url":"%s"}\n' "$local_file")"
     else
         log "Using download url: $tedge_url"
-        next_state_with_context "$(printf '{"status":"%s","url":"%s"}\n' "$status" "$tedge_url")"
+        update_state "$(printf '{"url":"%s"}\n' "$tedge_url")"
     fi
 }
 
 install() {
     url="$1"
     log "Executing: mender install --reboot-exit-code '$url'"
-    EXIT_CODE=0
-    sudo mender install --reboot-exit-code "$url" || EXIT_CODE="$?"
+    EXIT_CODE="$OK"
+    $SUDO mender install --reboot-exit-code "$url" || EXIT_CODE="$?"
 
     case "$EXIT_CODE" in
         0)
             log "OK, no RESTART required"
-            next_state "$ON_SUCCESS"
             ;;
         4)
             log "OK, RESTART required"
-            next_state "$ON_RESTART"
             ;;
         *)
             log "ERROR. Unexpected mender return code"
-            next_state "$ON_ERROR"
             ;;
     esac
+    exit "$EXIT_CODE"
 }
 
 commit() {
     log "Executing: mender commit"
-    EXIT_CODE=0
-    sudo mender commit || EXIT_CODE="$?"
+    EXIT_CODE="$OK"
+    $SUDO mender commit || EXIT_CODE="$?"
 
     case "$EXIT_CODE" in
         0)
@@ -235,45 +212,35 @@ commit() {
             # Save firmware meta information to file (for reading on startup during normal operation)
             local_log "Saving firmware info to $FIRMWARE_META_FILE"
             printf 'FIRMWARE_NAME=%s\nFIRMWARE_VERSION=%s\nFIRMWARE_URL=%s\n' "$FIRMWARE_NAME" "$FIRMWARE_VERSION" "$FIRMWARE_URL" > "$FIRMWARE_META_FILE"
-
-            next_state "$ON_SUCCESS"
             ;;
         2)
             log "Nothing to commit (update is not in progress)"
-            next_state "$ON_ERROR" "Nothing to commit. Either the boot loader triggered the rollback, the device was rebooted after switching to new partition, or someone did a manual commit or rollback!"
+            set_reason "Nothing to commit (update is not in progress)"
             ;;
         *)
             log "Mender returned code: $EXIT_CODE. Rolling back to previous partition"
-            next_state "$ON_RESTART"
+            set_reason "Mender returned code: $EXIT_CODE. Rolling back to previous partition"
             ;;
     esac
+    exit "$EXIT_CODE"
 }
 
 case "$ACTION" in
-    executing)
-        executing
-        next_state "$ON_SUCCESS"
-        ;;
-    download) download "$ON_SUCCESS" "$FIRMWARE_URL"; ;;
+    executing) executing; ;;
+    download) download "$FIRMWARE_URL"; ;;
     install) install "$FIRMWARE_URL"; ;;
     commit) commit; ;;
     restarted)
 	    wait_for_network ||:
         log "Device has been restarted...continuing workflow. partition=$(get_current_partition)"
-        next_state "$ON_SUCCESS"
         ;;
     rollback_successful)
-        next_state "$ON_SUCCESS" "Firmware update failed, but the rollback was successful. partition=$(get_current_partition)"
-        ;;
-    failed_restart)
-        # There is no success/failed action here, we always transition to the next state
-        # Only an error reason is added
-        next_state "$ON_SUCCESS" "Device failed to restart"
+        log "Firmware update failed, but the rollback was successful. partition=$(get_current_partition)"
         ;;
     *)
-        log "Unknown command. This script only accecpts: download, install, commit, rollback, rollback_successful, failed_restart"
-        exit 1
+        log "Unknown command. This script only accecpts: download, install, commit, rollback, rollback_successful"
+        exit "$FAILED"
         ;;
 esac
 
-exit 0
+exit "$OK"
