@@ -1,4 +1,6 @@
+#:schema https://gist.githubusercontent.com/reubenmiller/4e28e8403fe0c54b7461ac7d1d6838c2/raw/b8599ccf81120bb22bdaa164655e2cc0b8fcb902/tedge.workflow.json
 operation = "firmware_update"
+on_error = "failed"
 
 [init]
 next = ["scheduled"]
