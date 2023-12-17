@@ -2,7 +2,7 @@ LICENSE = "CLOSED"
 
 SRC_URI += " \
     file://mender_workflow.sh \ 
-    file://firmware_update.toml \
+    file://firmware_update.mender.toml \
     file://tedge-firmware \
     file://persist.conf \
 "
@@ -12,8 +12,12 @@ do_install () {
     install -d "${D}${bindir}"
     install -m 0755 "${WORKDIR}/mender_workflow.sh" "${D}${bindir}"
 
-    install -d "${D}/etc/tedge/operations"
-    install -m 0644 "${WORKDIR}/firmware_update.toml" "${D}${sysconfdir}/tedge/operations"
+    install -d "${D}${datadir}/tedge-workflows"
+    install -d "${D}${sysconfdir}/tedge/operations"
+    install -m 0644 "${WORKDIR}/firmware_update.mender.toml" "${D}${datadir}/tedge-workflows/"
+
+    # Use a symlink to allow updating the workflow across updates
+    ln --relative -s "${D}${datadir}/tedge-workflows/firmware_update.mender.toml" "${D}${sysconfdir}/tedge/operations/firmware_update.toml"
 
     # FIXME: This cases a conflict with the existing sudoers.d folder
     # Allow sudo access
@@ -29,6 +33,7 @@ do_install () {
 FILES:${PN} += " \
     ${bindir}/mender_workflow.sh \
     ${sysconfdir}/tedge/operations/firmware_update.toml \
+    ${datadir}/tedge-workflows/firmware_update.mender.toml \
     ${sysconfdir}/sudoers.d/tedge-firmware \
     ${sysconfdir}/tedge/mosquitto-conf/persist.conf \
 "
