@@ -1,10 +1,10 @@
 # Architecture variables
 ARCH_REPO_CHANNEL = "main"
-ARCH_VERSION = "0.13.2-rc177+gb4974b9"
-SRC_URI[aarch64.md5sum] = "beb555359e8923208912665e6ad3a9ad"
-SRC_URI[armv6.md5sum] = "8a64348db1509a5ffa671509417509d9"
-SRC_URI[armv7.md5sum] = "54d3ae57e52dea5d4392ae8c71a6d5f0"
-SRC_URI[x86_64.md5sum] = "59bd15d5856274f96430ab3308f8bd36"
+ARCH_VERSION = "0.13.2-rc239+ga9f66cd"
+SRC_URI[aarch64.md5sum] = "2b7244190b5728ee7bfb3298a395166b"
+SRC_URI[armv6.md5sum] = "030f26fc78351daf89bd41c3700b54a1"
+SRC_URI[armv7.md5sum] = "944b6686e505342c11e72ad553fb2caa"
+SRC_URI[x86_64.md5sum] = "cb3a389d3148df5379fc7a788863a8a2"
 
 # Init manager variables
 INIT_REPO_CHANNEL = "community"
