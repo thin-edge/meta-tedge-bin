@@ -43,8 +43,8 @@ get_mac_address() {
 }
 
 get_model_type() {
-    MODEL=$(cat /proc/cpuinfo  | grep Model | cut -d: -f2 | xargs)
-    SERIAL_NO=$(cat /proc/cpuinfo  | grep Serial | cut -d: -f2 | xargs)
+    MODEL=$(grep Model /proc/cpuinfo | cut -d: -f2 | xargs)
+    SERIAL_NO=$(grep Serial /proc/cpuinfo | cut -d: -f2 | xargs)
 
     echo "Detected model: $MODEL" >&2
     echo "Detected serial no.: $SERIAL_NO" >&2
@@ -72,6 +72,12 @@ get_model_type() {
             ;;
         Raspberry\ Pi\ Zero\ W\ Rev*)
             MODEL_PREFIX=rpizero
+            ;;
+        Raspberry\ Pi\ Compute\ Module\ 3*)
+            MODEL_PREFIX=rpicm3
+            ;;
+        Raspberry\ Pi\ Compute\ Module\ 4*)
+            MODEL_PREFIX=rpicm4
             ;;
         *)
             MODEL_PREFIX=unknown
