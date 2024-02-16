@@ -14,7 +14,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check update
         run: ./scripts/admin.sh update_version
-      - name: Check for changes
+      - name: Create PR on new version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -x
           git add -A . ||:
@@ -30,11 +32,5 @@ jobs:
           git checkout -b "$PR_BRANCH"
           git commit -am "Update version"
           git push --set-upstream origin "$PR_BRANCH"
-
-      - name: create pull request
-        run: |
           gh repo set-default ${{github.repository}}
           gh pr create --title "Update version" --body "Update version"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
