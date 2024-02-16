@@ -29,6 +29,7 @@ jobs:
           git config --global user.name "Versioneer"
           git checkout -b "$PR_BRANCH"
           git commit -am "Update version"
+          git push --set-upstream origin "$PR_BRANCH"
 
       - name: create pull request
         run: |
