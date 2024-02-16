@@ -7,17 +7,16 @@ on:
 jobs:
   check_updates:
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'thin-edge'
+    env:
+      PR_BRANCH: updater
     steps:
       - uses: actions/checkout@v4
-      - name: Set current date as env variable
-        run: |
-          echo "NOW=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
-          echo "PR_BRANCH=dep-update-$NOW" >> $GITHUB_ENV
-
       - name: Check update
         run: ./scripts/admin.sh update_version
       - name: Check for changes
         run: |
+          set -x
           git add -A . ||:
 
           if git diff --quiet && git diff --cached --quiet; then
@@ -25,11 +24,16 @@ jobs:
             exit 0
           fi
           echo "Changes detected. Raising PR"
-
+          git status
           git config --global user.email "info@thin-edge.io"
           git config --global user.name "Versioneer"
           git checkout -b "$PR_BRANCH"
           git commit -am "Update version"
-          git push --set-upstream origin "$PR_BRANCH"
+
       - name: create pull request
-        run: gh pr create -B main -H "$PR_BRANCH" --title "Update version" --body "Update version"
+        run: |
+          gh repo set-default ${{github.repository}}
+          gh pr create --title "Update version" --body "Update version"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
